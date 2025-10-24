@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>15分交代 ペアプロ・タイマー</title>
+    <style>
+      :root {
+        --bg: #0f172a; /* slate-900 */
+        --panel: #111827; /* gray-900 */
+        --muted: #94a3b8; /* slate-400 */
+        --text: #e5e7eb; /* gray-200 */
+        --accent: #38bdf8; /* sky-400 */
+        --accent-2: #22c55e; /* green-500 */
+        --warn: #f59e0b; /* amber-500 */
+        --danger: #ef4444; /* red-500 */
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        background: linear-gradient(135deg, #0b1223, #0f172a 35%, #0b1223 70%);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 16px;
+      }
+      .card {
+        background: rgba(17, 24, 39, 0.75);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      @media (min-width: 900px) {
+        .grid {
+          grid-template-columns: 1.2fr 0.8fr;
+        }
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 22px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      }
+      header h1 {
+        font-size: 20px;
+        margin: 0;
+        letter-spacing: 0.3px;
+      }
+      .phase {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .pill {
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        padding: 2px 10px;
+        border-radius: 999px;
+        color: #fff;
+      }
+      .pill.a {
+        background: linear-gradient(90deg, #0369a1, #38bdf8);
+      }
+      .pill.b {
+        background: linear-gradient(90deg, #14532d, #22c55e);
+      }
+      .body {
+        padding: 22px;
+      }
+      .timer {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .time {
+        font-variant-numeric: tabular-nums;
+        font-size: 88px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-align: center;
+      }
+      .label {
+        font-size: 16px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .progress {
+        height: 14px;
+        background: rgba(148, 163, 184, 0.15);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .progress > div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), #60a5fa);
+        transition: width 0.25s ease;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+      }
+      button {
+        appearance: none;
+        border: none;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: #0b1223;
+        color: #e5e7eb;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.primary {
+        background: linear-gradient(180deg, #0ea5e9, #0284c7);
+        border-color: transparent;
+      }
+      button.warn {
+        background: linear-gradient(180deg, #f59e0b, #d97706);
+        border-color: transparent;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      input[type="number"],
+      input[type="text"],
+      select {
+        width: 100%;
+        background: #0b1223;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        color: #e5e7eb;
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .help {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .footer {
+        padding: 14px 18px;
+        border-top: 1px solid rgba(148, 163, 184, 0.12);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: #0b1223;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        padding: 4px 8px;
+        border-radius: 8px;
+        color: #e5e7eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap grid">
+      <!-- LEFT: Timer -->
+      <section class="card" aria-live="polite">
+        <header>
+          <h1>15分交代 ペアプロ・タイマー</h1>
+          <div class="phase">
+            <span id="rolePill" class="pill a">Aがドライバー</span
+            ><span id="phaseText" class="muted">交代制セッション中</span>
+          </div>
+        </header>
+        <div class="body">
+          <div class="timer">
+            <div class="time" id="time">15:00</div>
+            <div class="label" id="label">
+              現在: <strong id="driverNow">A</strong>（ナビ:
+              <span id="navigatorNow">B</span>） / 次:
+              <span id="nextUp">B</span>
+            </div>
+            <div class="progress" aria-hidden="true"><div id="bar"></div></div>
+            <div class="controls">
+              <button class="primary" id="startPause">開始</button>
+              <button id="reset">リセット</button>
+              <button id="skip">スキップ（次へ）</button>
+              <button id="switch">手動で交代</button>
+            </div>
+            <div class="label" id="status" style="margin-top: 6px">
+              準備OK。Space:開始/一時停止, N:次へ, R:リセット
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="help">
+            サイクル: <span id="cycleCount">0</span> / ステージ:
+            <span id="stageCount">0</span>
+          </div>
+          <div class="help">通知・音: <span id="notifState">未許可</span></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Settings -->
+      <aside class="card">
+        <header>
+          <h1>設定</h1>
+          <div class="phase">
+            <span class="muted">保存は自動（ローカル）</span>
+          </div>
+        </header>
+        <div class="body stack">
+          <div class="two">
+            <label class="stack"
+              >ドライバー名A<input id="nameA" type="text" value="A"
+            /></label>
+            <label class="stack"
+              >ドライバー名B<input id="nameB" type="text" value="B"
+            /></label>
+          </div>
+          <div class="two">
+            <label class="stack"
+              >1セット分（分）<input
+                id="workMin"
+                type="number"
+                min="1"
+                max="60"
+                step="1"
+                value="15"
+            /></label>
+            <label class="stack"
+              >1サイクルのセット数<input
+                id="setsPerCycle"
+                type="number"
+                min="2"
+                max="8"
+                step="1"
+                value="4"
+            /></label>
+          </div>
+          <div class="two">
+            <label class="stack"
+              >短い休憩（分）<input
+                id="shortBreak"
+                type="number"
+                min="1"
+                max="20"
+                value="5"
+            /></label>
+            <label class="stack"
+              >長い休憩（分）<input
+                id="longBreak"
+                type="number"
+                min="5"
+                max="60"
+                value="15"
+            /></label>
+          </div>
+          <div class="two">
+            <label class="stack"
+              >長休憩の間隔（サイクル）<input
+                id="longBreakEvery"
+                type="number"
+                min="1"
+                max="6"
+                value="2"
+            /></label>
+            <label class="stack"
+              >アラート音
+              <select id="sound">
+                <option value="bell">ベル</option>
+                <option value="none">なし</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <input id="notify" type="checkbox" />
+            <label for="notify">デスクトップ通知を使う</label>
+          </div>
+          <div class="help">
+            推奨:
+            「15分×4セット→5分休憩」を1サイクル。2サイクルごとに長め（15分）の休憩。
+          </div>
+        </div>
+        <div class="footer">
+          <div class="help">
+            キーバインド: <span class="kbd">Space</span> 開始/一時停止
+            <span class="kbd">N</span> 次へ <span class="kbd">R</span> リセット
+          </div>
+          <button id="saveBtn">設定を保存</button>
+        </div>
+      </aside>
+    </div>
+
+    <audio id="bell" src="./asset/bell.mp3" type="audio/mpeg"></audio>
+
+    <script>
+      // --- State ---
+      const el = (id) => document.getElementById(id);
+      const state = {
+        running: false,
+        totalSec: 15 * 60,
+        remainSec: 15 * 60,
+        driver: "A",
+        navigator: "B",
+        stage: 0, // set index within a cycle (work phases only)
+        cycle: 0, // completed cycles
+        setsPerCycle: 4,
+        shortBreakMin: 5,
+        longBreakMin: 15,
+        longBreakEvery: 2,
+        interval: null,
+        phase: "work", // 'work' | 'short' | 'long'
+      };
+
+      // --- Load settings ---
+      function loadSettings() {
+        const ls = JSON.parse(
+          localStorage.getItem("pairTimerSettings") || "{}"
+        );
+        if (ls.nameA) el("nameA").value = ls.nameA;
+        if (ls.nameB) el("nameB").value = ls.nameB;
+        if (ls.workMin) el("workMin").value = ls.workMin;
+        if (ls.setsPerCycle) el("setsPerCycle").value = ls.setsPerCycle;
+        if (ls.shortBreak) el("shortBreak").value = ls.shortBreak;
+        if (ls.longBreak) el("longBreak").value = ls.longBreak;
+        if (ls.longBreakEvery) el("longBreakEvery").value = ls.longBreakEvery;
+        if (ls.sound) el("sound").value = ls.sound;
+        if (ls.notify) el("notify").checked = true;
+        applySettings();
+      }
+
+      function saveSettings() {
+        const payload = {
+          nameA: el("nameA").value || "A",
+          nameB: el("nameB").value || "B",
+          workMin: +el("workMin").value || 15,
+          setsPerCycle: +el("setsPerCycle").value || 4,
+          shortBreak: +el("shortBreak").value || 5,
+          longBreak: +el("longBreak").value || 15,
+          longBreakEvery: +el("longBreakEvery").value || 2,
+          sound: el("sound").value,
+          notify: el("notify").checked,
+        };
+        localStorage.setItem("pairTimerSettings", JSON.stringify(payload));
+        applySettings();
+        toast("設定を保存しました");
+      }
+
+      function applySettings() {
+        state.setsPerCycle = +el("setsPerCycle").value;
+        state.shortBreakMin = +el("shortBreak").value;
+        state.longBreakMin = +el("longBreak").value;
+        state.longBreakEvery = +el("longBreakEvery").value;
+        state.totalSec = +el("workMin").value * 60;
+        if (state.phase === "work") state.remainSec = state.totalSec;
+        updateUI();
+      }
+
+      // --- Timer logic ---
+      function start() {
+        if (state.running) return;
+        state.running = true;
+        el("startPause").textContent = "一時停止";
+        state.interval = setInterval(tick, 1000);
+        setStatus("進行中…");
+      }
+      function pause() {
+        state.running = false;
+        el("startPause").textContent = "再開";
+        clearInterval(state.interval);
+        setStatus("一時停止中");
+      }
+      function reset() {
+        clearInterval(state.interval);
+        state.running = false;
+        state.phase = "work";
+        state.remainSec = state.totalSec;
+        state.stage = 0;
+        state.cycle = 0;
+        state.driver = "A";
+        state.navigator = "B";
+        el("startPause").textContent = "開始";
+        setStatus("リセットしました");
+        updateUI();
+      }
+
+      function tick() {
+        if (state.remainSec > 0) {
+          state.remainSec--;
+          updateUI();
+        } else {
+          advancePhase();
+        }
+      }
+
+      function advancePhase() {
+        // play sound & notify
+        ring();
+        notify(`${phaseLabel()} 終了`);
+
+        if (state.phase === "work") {
+          // swap driver & increment stage
+          swapDriver();
+          state.stage++;
+          if (state.stage % state.setsPerCycle === 0) {
+            // cycle completed
+            state.cycle++;
+            state.phase =
+              state.cycle % state.longBreakEvery === 0 ? "long" : "short";
+            state.remainSec =
+              (state.phase === "long"
+                ? state.longBreakMin
+                : state.shortBreakMin) * 60;
+            setStatus(state.phase === "long" ? "長い休憩" : "短い休憩");
+          } else {
+            // short intermission? optional: immediate continue with next work
+            state.phase = "work";
+            state.remainSec = state.totalSec;
+            setStatus("次の交代へ");
+          }
+        } else {
+          // break finished -> next work
+          state.phase = "work";
+          state.remainSec = state.totalSec;
+          setStatus("作業に戻ります");
+        }
+        updateUI();
+      }
+
+      function swapDriver() {
+        const a = el("nameA").value || "A";
+        const b = el("nameB").value || "B";
+        if (state.driver === "A") {
+          state.driver = "B";
+          state.navigator = "A";
+        } else {
+          state.driver = "A";
+          state.navigator = "B";
+        }
+      }
+
+      // --- UI helpers ---
+      function fmt(sec) {
+        const m = Math.floor(sec / 60)
+          .toString()
+          .padStart(2, "0");
+        const s = Math.floor(sec % 60)
+          .toString()
+          .padStart(2, "0");
+        return `${m}:${s}`;
+      }
+      function phaseLabel() {
+        if (state.phase === "work") return "作業セッション";
+        if (state.phase === "short") return "短い休憩";
+        return "長い休憩";
+      }
+      function updateUI() {
+        el("time").textContent = fmt(state.remainSec);
+        const done =
+          1 -
+          state.remainSec /
+            (state.phase === "work"
+              ? state.totalSec
+              : (state.phase === "long"
+                  ? state.longBreakMin
+                  : state.shortBreakMin) * 60);
+        el("bar").style.width = `${Math.max(0, Math.min(100, done * 100))}%`;
+
+        const nameA = el("nameA").value || "A";
+        const nameB = el("nameB").value || "B";
+        const driverName = state.driver === "A" ? nameA : nameB;
+        const navigatorName = state.navigator === "A" ? nameA : nameB;
+        const nextUp = state.driver === "A" ? nameB : nameA;
+        el("driverNow").textContent = driverName;
+        el("navigatorNow").textContent = navigatorName;
+        el("nextUp").textContent = nextUp;
+
+        el("rolePill").textContent =
+          state.phase === "work" ? `${state.driver}がドライバー` : phaseLabel();
+        el("rolePill").className = `pill ${
+          state.phase === "work" ? (state.driver === "A" ? "a" : "b") : ""
+        }`;
+        el("phaseText").textContent =
+          state.phase === "work"
+            ? `1セット ${Math.round(state.totalSec / 60)}分 / サイクル内${
+                state.setsPerCycle
+              }セット目：${(state.stage % state.setsPerCycle) + 1}/${
+                state.setsPerCycle
+              }`
+            : "休憩中";
+        el("cycleCount").textContent = state.cycle;
+        el("stageCount").textContent = state.stage;
+      }
+
+      function setStatus(msg) {
+        el("status").textContent = msg;
+      }
+
+      // --- Alerts ---
+      function ring() {
+        if (el("sound").value === "none") return;
+        const a = el("ding");
+        a.currentTime = 0;
+        a.play().catch(() => {});
+      }
+      function notify(msg) {
+        if (!el("notify").checked) return;
+        if (Notification.permission === "granted") {
+          const n = new Notification("ペアプロ・タイマー", { body: msg });
+          setTimeout(() => n.close(), 4000);
+        }
+      }
+
+      // --- Events ---
+      el("startPause").addEventListener("click", () => {
+        state.running ? pause() : start();
+      });
+      el("reset").addEventListener("click", reset);
+      el("skip").addEventListener("click", () => {
+        state.remainSec = 0;
+        tick();
+      });
+      el("switch").addEventListener("click", () => {
+        if (state.phase === "work") {
+          swapDriver();
+          updateUI();
+          setStatus("手動交代しました");
+        }
+      });
+      el("saveBtn").addEventListener("click", saveSettings);
+
+      document.addEventListener("keydown", (e) => {
+        if (
+          ["INPUT", "TEXTAREA", "SELECT"].includes(
+            document.activeElement.tagName
+          )
+        )
+          return;
+        if (e.code === "Space") {
+          e.preventDefault();
+          state.running ? pause() : start();
+        }
+        if (e.key === "n" || e.key === "N") {
+          e.preventDefault();
+          el("skip").click();
+        }
+        if (e.key === "r" || e.key === "R") {
+          e.preventDefault();
+          reset();
+        }
+        if (e.key === "s" || e.key === "S") {
+          e.preventDefault();
+          el("switch").click();
+        }
+      });
+
+      el("notify").addEventListener("change", async () => {
+        if (el("notify").checked && Notification.permission !== "granted") {
+          try {
+            await Notification.requestPermission();
+          } catch (e) {}
+          el("notifState").textContent =
+            Notification.permission === "granted" ? "許可済み" : "未許可";
+        } else {
+          el("notifState").textContent = "未許可";
+        }
+      });
+
+      // --- Mini toast ---
+      function toast(text) {
+        const t = document.createElement("div");
+        t.textContent = text;
+        t.style.cssText =
+          "position:fixed;left:50%;top:24px;transform:translateX(-50%);background:#0b1223;border:1px solid rgba(148,163,184,0.25);padding:10px 14px;border-radius:10px;z-index:9999;opacity:0;transition:opacity .2s ease";
+        document.body.appendChild(t);
+        requestAnimationFrame(() => {
+          t.style.opacity = 1;
+        });
+        setTimeout(() => {
+          t.style.opacity = 0;
+          setTimeout(() => t.remove(), 200);
+        }, 1400);
+      }
+
+      // --- Init ---
+      loadSettings();
+      updateUI();
+    </script>
+  </body>
+</html>
