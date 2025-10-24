@@ -52,6 +52,9 @@
         .grid {
           grid-template-columns: 1.2fr 0.8fr;
         }
+        .help-card {
+          grid-column: 1 / -1;
+        }
       }
       @media (max-width: 768px) {
         .wrap {
@@ -315,6 +318,41 @@
         gap: 8px;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .stats {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .stat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .stat-badge .stat-value {
+        color: var(--primary);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .help-section {
+        padding: 12px;
+        background: rgba(59, 130, 246, 0.05);
+        border-left: 3px solid var(--primary);
+        border-radius: 6px;
+      }
+      .help-section ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .help-section li {
+        margin: 6px 0;
       }
       .kbd {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -360,11 +398,16 @@
           </div>
         </div>
         <div class="footer">
-          <div class="help">
-            サイクル: <span id="cycleCount">0</span> / ステージ:
-            <span id="stageCount">0</span>
+          <div class="stats">
+            <div class="stat-badge">
+              <span>サイクル</span>
+              <span class="stat-value" id="cycleCount">0</span>
+            </div>
+            <div class="stat-badge">
+              <span>ステージ</span>
+              <span class="stat-value" id="stageCount">0</span>
+            </div>
           </div>
-          <div class="help">通知・音: <span id="notifState">未許可</span></div>
         </div>
       </section>
 
@@ -441,7 +484,7 @@
             </label>
           </div>
           <div class="row">
-            <input id="notify" type="checkbox" />
+            <input id="notify" type="checkbox" checked />
             <label for="notify">デスクトップ通知を使う</label>
           </div>
           <div class="help">
@@ -454,9 +497,45 @@
             キーバインド: <span class="kbd">Space</span> 開始/一時停止
             <span class="kbd">N</span> 次へ <span class="kbd">R</span> リセット
           </div>
-          <button id="saveBtn">設定を保存</button>
         </div>
       </aside>
+
+      <!-- Usage & Rules -->
+      <section class="card help-card">
+        <header>
+          <h1>使い方とルール</h1>
+        </header>
+        <div class="body stack">
+          <div class="help-section">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text);">📖 基本ルール</h3>
+            <ul style="margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.6; color: var(--text-secondary);">
+              <li>2人でペアプログラミングを行います（ドライバーとナビゲーター）</li>
+              <li>ドライバーがコードを書き、ナビゲーターがレビュー・アドバイスします</li>
+              <li>設定した時間（デフォルト15分）で自動的に役割が交代します</li>
+              <li>設定したセット数（デフォルト4セット）で1サイクルが完了し、休憩に入ります</li>
+              <li>設定したサイクル数（デフォルト2サイクル）ごとに長い休憩を取ります</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text);">⌨️ キーボードショートカット</h3>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 12px; color: var(--text-secondary);">
+              <span class="kbd">Space</span><span>開始 / 一時停止</span>
+              <span class="kbd">N</span><span>次へスキップ</span>
+              <span class="kbd">R</span><span>リセット</span>
+              <span class="kbd">S</span><span>手動で交代</span>
+            </div>
+          </div>
+          <div class="help-section">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text);">💡 効果的な使い方のヒント</h3>
+            <ul style="margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.6; color: var(--text-secondary);">
+              <li>休憩時間は必ず取りましょう（集中力の維持に重要です）</li>
+              <li>交代時にコードの説明をすると理解が深まります</li>
+              <li>ナビゲーターは積極的にアドバイスしましょう</li>
+              <li>設定は自動保存されます（変更後すぐに反映）</li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </div>
 
     <audio id="bell" src="./asset/bell.mp3" type="audio/mpeg"></audio>
@@ -695,7 +774,10 @@
           setStatus("手動交代しました");
         }
       });
-      el("saveBtn").addEventListener("click", saveSettings);
+      // Auto-save settings on change
+      ["nameA", "nameB", "workMin", "setsPerCycle", "shortBreak", "longBreak", "longBreakEvery", "sound"].forEach(id => {
+        el(id).addEventListener("change", saveSettings);
+      });
 
       document.addEventListener("keydown", (e) => {
         if (
@@ -727,11 +809,8 @@
           try {
             await Notification.requestPermission();
           } catch (e) {}
-          el("notifState").textContent =
-            Notification.permission === "granted" ? "許可済み" : "未許可";
-        } else {
-          el("notifState").textContent = "未許可";
         }
+        saveSettings();
       });
 
       // --- Mini toast ---
