@@ -529,7 +529,7 @@
       // --- Alerts ---
       function ring() {
         if (el("sound").value === "none") return;
-        const a = el("ding");
+        const a = el("bell");
         a.currentTime = 0;
         a.play().catch(() => {});
       }
